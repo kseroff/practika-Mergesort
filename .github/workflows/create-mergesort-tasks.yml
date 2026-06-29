@@ -1,0 +1,325 @@
+name: Create Mergesort tasks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  create-tasks:
+    name: Create labels and issues
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+
+    steps:
+      - name: Create common labels
+        run: |
+          gh label create "type: feature" --description "Новая функциональность" --color "1f883d" --force --repo "$REPO"
+          gh label create "type: bug" --description "Ошибка или баг" --color "d1242f" --force --repo "$REPO"
+          gh label create "type: docs" --description "Документация" --color "0969da" --force --repo "$REPO"
+          gh label create "type: test" --description "Тестирование" --color "8250df" --force --repo "$REPO"
+
+          gh label create "priority: low" --description "Низкий приоритет" --color "bfdbfe" --force --repo "$REPO"
+          gh label create "priority: medium" --description "Средний приоритет" --color "fbca04" --force --repo "$REPO"
+          gh label create "priority: high" --description "Высокий приоритет" --color "d1242f" --force --repo "$REPO"
+
+          gh label create "needs review" --description "Нужна проверка другим участником" --color "d4c5f9" --force --repo "$REPO"
+
+          gh label create "component: src" --description "Исходный код в папке src" --color "0e8a16" --force --repo "$REPO"
+          gh label create "component: docs" --description "Документация в папке docs" --color "0052cc" --force --repo "$REPO"
+          gh label create "component: test-results" --description "Результаты тестирования в папке test-results" --color "5319e7" --force --repo "$REPO"
+
+      - name: Create Mergesort issues
+        run: |
+          create_issue_if_missing() {
+            TITLE="$1"
+            LABELS="$2"
+            BODY="$3"
+
+            EXISTING_URL=$(gh issue list \
+              --repo "$REPO" \
+              --state all \
+              --search "$TITLE in:title" \
+              --json title,url \
+              --jq ".[] | select(.title == \"$TITLE\") | .url" | head -n 1)
+
+            if [ -n "$EXISTING_URL" ]; then
+              echo "Issue already exists: $TITLE"
+              echo "$EXISTING_URL"
+            else
+              echo "Creating issue: $TITLE"
+              gh issue create \
+                --repo "$REPO" \
+                --title "$TITLE" \
+                --label "$LABELS" \
+                --body "$BODY"
+            fi
+          }
+
+          create_issue_if_missing \
+            "Создать Visual Studio 2022 C++ проект Mergesort в src" \
+            "type: feature,priority: high,component: src" \
+            "## Описание
+
+          Нужно создать или добавить Visual Studio 2022 C++ проект \`Mergesort\` в папку \`src\`.
+
+          ## Требования
+
+          - в папке \`src\` должен быть файл \`Mergesort.sln\`;
+          - рядом с ним должен быть \`Mergesort.vcxproj\`;
+          - проект должен собираться в конфигурации \`Release|x64\`;
+          - временные файлы Visual Studio не добавлять в Git;
+          - исходный код должен находиться внутри \`src\`.
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/setup-mergesort-project
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/setup-mergesort-project -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Реализовать алгоритм MergeSort" \
+            "type: feature,priority: high,component: src" \
+            "## Описание
+
+          Нужно реализовать алгоритм сортировки слиянием MergeSort на C++.
+
+          ## Требования
+
+          - сортировка массива или \`std::vector<int>\`;
+          - сортировка по возрастанию;
+          - реализация должна быть отделена от консольного интерфейса;
+          - код должен быть понятным для code review;
+          - желательно выделить отдельные функции для merge и mergeSort.
+
+          ## Проверить
+
+          - обычный массив;
+          - уже отсортированный массив;
+          - массив в обратном порядке;
+          - массив с одинаковыми значениями;
+          - массив с отрицательными числами;
+          - массив из одного элемента;
+          - пустой массив, если такая ситуация поддерживается.
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/mergesort-algorithm
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/mergesort-algorithm -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Добавить сбор метрик MergeSort" \
+            "type: feature,priority: medium,component: src" \
+            "## Описание
+
+          Нужно добавить сбор метрик работы MergeSort.
+
+          ## Метрики
+
+          - количество сравнений;
+          - количество операций копирования или перемещений;
+          - количество рекурсивных вызовов;
+          - размер входного массива;
+          - время выполнения.
+
+          ## Результат
+
+          Метрики должны выводиться после сортировки.
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/mergesort-metrics
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/mergesort-metrics -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Сделать консольный интерфейс приложения" \
+            "type: feature,priority: high,component: src" \
+            "## Описание
+
+          Нужно сделать консольный интерфейс для приложения Mergesort.
+
+          ## Меню должно позволять
+
+          - создать массив вручную;
+          - сгенерировать случайный массив;
+          - загрузить массив из файла;
+          - отсортировать текущий массив;
+          - вывести результат;
+          - выйти из программы.
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/console-interface
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/console-interface -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Добавить валидацию входных данных" \
+            "type: feature,priority: medium,component: src" \
+            "## Описание
+
+          Нужно добавить проверку входных данных.
+
+          ## Проверить
+
+          - пустой ввод;
+          - нечисловые значения;
+          - слишком маленький массив;
+          - слишком большой массив;
+          - некорректный формат файла;
+          - отсутствие файла;
+          - невозможность открыть файл.
+
+          ## Результат
+
+          Программа должна выводить понятное сообщение об ошибке и не должна аварийно завершаться.
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/input-validation
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/input-validation -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Реализовать чтение и запись файлов" \
+            "type: feature,priority: medium,component: src" \
+            "## Описание
+
+          Нужно реализовать чтение массива из файла и сохранение результата сортировки.
+
+          ## Требования
+
+          - пользователь может указать путь к входному файлу;
+          - файл содержит целые числа;
+          - программа проверяет ошибки открытия и чтения;
+          - отсортированный массив можно сохранить в файл;
+          - результаты должны храниться в понятном формате.
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/file-input-output
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/file-input-output -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Провести тестирование MergeSort" \
+            "type: test,priority: high,component: test-results" \
+            "## Описание
+
+          Нужно протестировать приложение Mergesort и оформить результаты тестирования.
+
+          ## Проверить
+
+          - обычный массив;
+          - уже отсортированный массив;
+          - массив в обратном порядке;
+          - массив с одинаковыми значениями;
+          - массив с отрицательными числами;
+          - массив из одного элемента;
+          - большой массив;
+          - некорректный ввод;
+          - чтение из файла;
+          - сохранение результата.
+
+          ## Результат
+
+          Создать файл:
+
+          \`\`\`text
+          test-results/testing-report.md
+          \`\`\`
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/testing-report
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/testing-report -> develop
+          \`\`\`"
+
+          create_issue_if_missing \
+            "Подготовить документацию проекта" \
+            "type: docs,priority: medium,component: docs" \
+            "## Описание
+
+          Нужно подготовить документацию проекта Mergesort.
+
+          ## Документация должна содержать
+
+          - цель проекта;
+          - описание MergeSort;
+          - как открыть проект в Visual Studio 2022;
+          - где находится \`Mergesort.sln\`;
+          - как собрать проект;
+          - как запустить программу;
+          - как вводить данные;
+          - как загрузить данные из файла;
+          - где смотреть результаты тестирования;
+          - известные ограничения.
+
+          ## Результат
+
+          Создать файл:
+
+          \`\`\`text
+          docs/user-guide.md
+          \`\`\`
+
+          ## Ветка
+
+          \`\`\`bash
+          feature/project-documentation
+          \`\`\`
+
+          ## Pull Request
+
+          \`\`\`text
+          feature/project-documentation -> develop
+          \`\`\`"

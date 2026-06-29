@@ -1,0 +1,186 @@
+name: Build Visual Studio C++ project
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/build-visual-studio.yml'
+
+  pull_request:
+    branches:
+      - develop
+      - main
+    paths:
+      - 'src/**'
+      - '.github/workflows/build-visual-studio.yml'
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Mergesort Windows x64 Release
+    runs-on: windows-2022
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Find Mergesort solution file
+        shell: pwsh
+        run: |
+          $solutionFiles = Get-ChildItem -Path "src" -Filter "Mergesort.sln" -Recurse -ErrorAction SilentlyContinue
+
+          if ($solutionFiles.Count -eq 0) {
+            if ($env:GITHUB_EVENT_NAME -eq "push") {
+              Write-Host "No Mergesort.sln found inside src/."
+              Write-Host "This can be normal during initial repository setup when workflows are added before the Visual Studio project."
+              Write-Host "Skipping build successfully for this push."
+              "SKIP_BUILD=true" >> $env:GITHUB_ENV
+              exit 0
+            }
+
+            throw "No Mergesort.sln file found inside src/. Expected Visual Studio solution: src/**/Mergesort.sln"
+          }
+
+          if ($solutionFiles.Count -gt 1) {
+            Write-Host "Found several Mergesort.sln files:"
+            $solutionFiles | ForEach-Object { Write-Host $_.FullName }
+            throw "Expected exactly one Mergesort.sln file inside src/."
+          }
+
+          $solutionFile = $solutionFiles[0].FullName
+          $solutionDir = Split-Path $solutionFile -Parent
+
+          Write-Host "Using solution file: $solutionFile"
+          Write-Host "Solution directory: $solutionDir"
+
+          "SOLUTION_FILE=$solutionFile" >> $env:GITHUB_ENV
+          "SOLUTION_DIR=$solutionDir" >> $env:GITHUB_ENV
+          "SKIP_BUILD=false" >> $env:GITHUB_ENV
+
+      - name: Check project file exists
+        if: env.SKIP_BUILD != 'true'
+        shell: pwsh
+        run: |
+          $projectFiles = Get-ChildItem -Path "$env:SOLUTION_DIR" -Filter "Mergesort.vcxproj" -Recurse
+
+          if ($projectFiles.Count -eq 0) {
+            throw "No Mergesort.vcxproj file found near Mergesort.sln. Expected Visual Studio project: Mergesort.vcxproj"
+          }
+
+          Write-Host "Found project file:"
+          $projectFiles | ForEach-Object { Write-Host $_.FullName }
+
+      - name: Restore solution
+        if: env.SKIP_BUILD != 'true'
+        shell: pwsh
+        run: |
+          msbuild "$env:SOLUTION_FILE" /t:Restore /p:Configuration=Release /p:Platform=x64
+
+      - name: Build solution
+        if: env.SKIP_BUILD != 'true'
+        shell: pwsh
+        run: |
+          msbuild "$env:SOLUTION_FILE" /m /p:Configuration=Release /p:Platform=x64
+
+      - name: Find built executable
+        if: env.SKIP_BUILD != 'true'
+        shell: pwsh
+        run: |
+          $exeFiles = Get-ChildItem -Path "$env:SOLUTION_DIR" -Filter "*.exe" -Recurse |
+            Where-Object {
+              $_.FullName -match "\\x64\\Release\\" -or
+              $_.FullName -match "\\Release\\"
+            }
+
+          if ($exeFiles.Count -eq 0) {
+            Write-Host "No .exe found in common Release folders. Searching inside src..."
+            $exeFiles = Get-ChildItem -Path "src" -Filter "*.exe" -Recurse
+          }
+
+          if ($exeFiles.Count -eq 0) {
+            throw "Build finished, but no .exe file was found."
+          }
+
+          Write-Host "Found exe files:"
+          $exeFiles | ForEach-Object { Write-Host $_.FullName }
+
+          $exe = $exeFiles[0]
+
+          New-Item -ItemType Directory -Force -Path "package" | Out-Null
+          Copy-Item $exe.FullName -Destination "package"
+
+          "APP_EXE=$($exe.Name)" >> $env:GITHUB_ENV
+
+          Write-Host "Selected exe: $($exe.FullName)"
+          Write-Host "Exe name: $($exe.Name)"
+
+      - name: Create zip package
+        if: env.SKIP_BUILD != 'true'
+        shell: pwsh
+        run: |
+          $branchName = "${{ github.ref_name }}"
+          $zipName = "mergesort-windows-$branchName.zip"
+
+          Compress-Archive -Path "package/*" -DestinationPath $zipName -Force
+
+          "ZIP_NAME=$zipName" >> $env:GITHUB_ENV
+
+          Write-Host "Created package: $zipName"
+
+      - name: Upload build artifact
+        if: env.SKIP_BUILD != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: mergesort-windows-${{ github.ref_name }}
+          path: ${{ env.ZIP_NAME }}
+          retention-days: 14
+
+      - name: Publish develop latest prerelease
+        if: env.SKIP_BUILD != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/develop'
+        shell: pwsh
+        run: |
+          Write-Host "Publishing develop-latest prerelease..."
+
+          gh release delete develop-latest --yes --cleanup-tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No previous develop-latest release found or delete failed. Continuing..."
+          }
+
+          gh release create develop-latest `
+            "$env:ZIP_NAME" `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title "Develop latest build" `
+            --notes "Автоматическая сборка проекта Mergesort из ветки develop. Commit: $env:GITHUB_SHA" `
+            --prerelease
+
+      - name: Publish main latest release
+        if: env.SKIP_BUILD != 'true' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: pwsh
+        run: |
+          Write-Host "Publishing main-latest release..."
+
+          gh release delete main-latest --yes --cleanup-tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "No previous main-latest release found or delete failed. Continuing..."
+          }
+
+          gh release create main-latest `
+            "$env:ZIP_NAME" `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:GITHUB_SHA `
+            --title "Main latest build" `
+            --notes "Автоматическая сборка проекта Mergesort из ветки main. Commit: $env:GITHUB_SHA"
