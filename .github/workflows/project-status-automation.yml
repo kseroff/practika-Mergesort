@@ -1,0 +1,307 @@
+name: Sync issues with MerdgeSort project
+
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      - assigned
+      - closed
+
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - ready_for_review
+      - converted_to_draft
+      - closed
+
+  pull_request_review:
+    types:
+      - submitted
+
+permissions:
+  contents: read
+  issues: read
+  pull-requests: read
+
+jobs:
+  sync-project-status:
+    name: Sync project status
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+
+      PROJECT_OWNER: kseroff
+      PROJECT_TITLE: MerdgeSort project
+
+      REPO_OWNER: kseroff
+      REPO_NAME: practika-Mergesort
+
+    steps:
+      - name: Update project status
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "PROJECT_TOKEN secret is not configured."
+            echo "Create repository secret PROJECT_TOKEN with project and repo scopes."
+            exit 1
+          fi
+
+          EVENT_NAME="${{ github.event_name }}"
+          EVENT_ACTION="${{ github.event.action }}"
+
+          TARGET_STATUS=""
+          ISSUE_NUMBERS=""
+
+          echo "Event name: $EVENT_NAME"
+          echo "Event action: $EVENT_ACTION"
+
+          if [ "$EVENT_NAME" = "issues" ]; then
+            ISSUE_NUMBER=$(jq -r '.issue.number' "$GITHUB_EVENT_PATH")
+
+            case "$EVENT_ACTION" in
+              opened|reopened)
+                TARGET_STATUS="to do"
+                ;;
+              assigned)
+                TARGET_STATUS="in progress"
+                ;;
+              closed)
+                TARGET_STATUS="done"
+                ;;
+              *)
+                echo "Unsupported issue action: $EVENT_ACTION"
+                exit 0
+                ;;
+            esac
+
+            ISSUE_NUMBERS="$ISSUE_NUMBER"
+          fi
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
+            PR_MERGED=$(jq -r '.pull_request.merged // false' "$GITHUB_EVENT_PATH")
+            PR_DRAFT=$(jq -r '.pull_request.draft // false' "$GITHUB_EVENT_PATH")
+
+            ISSUE_NUMBERS=$(printf "%s" "$PR_BODY" \
+              | grep -Eio '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
+              | grep -Eo '[0-9]+' \
+              | sort -u || true)
+
+            if [ -z "$ISSUE_NUMBERS" ]; then
+              echo "No linked issue found in PR body."
+              echo "Use syntax like: Closes #3"
+              exit 0
+            fi
+
+            if [ "$EVENT_ACTION" = "closed" ] && [ "$PR_MERGED" = "true" ]; then
+              TARGET_STATUS="done"
+            elif [ "$EVENT_ACTION" = "converted_to_draft" ] || [ "$PR_DRAFT" = "true" ]; then
+              TARGET_STATUS="in progress"
+            elif [ "$EVENT_ACTION" = "opened" ] || [ "$EVENT_ACTION" = "reopened" ] || [ "$EVENT_ACTION" = "ready_for_review" ]; then
+              TARGET_STATUS="Review"
+            else
+              echo "Unsupported pull_request action: $EVENT_ACTION"
+              exit 0
+            fi
+          fi
+
+          if [ "$EVENT_NAME" = "pull_request_review" ]; then
+            REVIEW_STATE=$(jq -r '.review.state // ""' "$GITHUB_EVENT_PATH")
+            PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
+
+            ISSUE_NUMBERS=$(printf "%s" "$PR_BODY" \
+              | grep -Eio '(close[sd]?|fix(e[sd])?|resolve[sd]?) +#[0-9]+' \
+              | grep -Eo '[0-9]+' \
+              | sort -u || true)
+
+            if [ -z "$ISSUE_NUMBERS" ]; then
+              echo "No linked issue found in PR body."
+              echo "Use syntax like: Closes #3"
+              exit 0
+            fi
+
+            if [ "$REVIEW_STATE" = "changes_requested" ]; then
+              TARGET_STATUS="in progress"
+            elif [ "$REVIEW_STATE" = "approved" ]; then
+              TARGET_STATUS="Review"
+            else
+              echo "Review state does not require status change: $REVIEW_STATE"
+              exit 0
+            fi
+          fi
+
+          if [ -z "$TARGET_STATUS" ]; then
+            echo "No target status selected."
+            exit 0
+          fi
+
+          echo "Target status: $TARGET_STATUS"
+          echo "Issue numbers:"
+          echo "$ISSUE_NUMBERS"
+
+          PROJECT_JSON=$(gh api graphql \
+            -f owner="$PROJECT_OWNER" \
+            -f title="$PROJECT_TITLE" \
+            -f query='
+              query($owner: String!, $title: String!) {
+                user(login: $owner) {
+                  projectsV2(first: 20, query: $title) {
+                    nodes {
+                      id
+                      title
+                      fields(first: 50) {
+                        nodes {
+                          ... on ProjectV2SingleSelectField {
+                            id
+                            name
+                            options {
+                              id
+                              name
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            ')
+
+          PROJECT_ID=$(echo "$PROJECT_JSON" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            '.data.user.projectsV2.nodes[] | select(.title == $title) | .id' | head -n 1)
+
+          if [ -z "$PROJECT_ID" ] || [ "$PROJECT_ID" = "null" ]; then
+            echo "Project not found: $PROJECT_TITLE"
+            echo "Check PROJECT_OWNER and PROJECT_TITLE."
+            exit 1
+          fi
+
+          STATUS_FIELD_ID=$(echo "$PROJECT_JSON" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            '.data.user.projectsV2.nodes[]
+             | select(.title == $title)
+             | .fields.nodes[]
+             | select(.name == "Status")
+             | .id' | head -n 1)
+
+          if [ -z "$STATUS_FIELD_ID" ] || [ "$STATUS_FIELD_ID" = "null" ]; then
+            echo "Status field not found in project."
+            exit 1
+          fi
+
+          OPTION_ID=$(echo "$PROJECT_JSON" | jq -r \
+            --arg title "$PROJECT_TITLE" \
+            --arg status "$TARGET_STATUS" \
+            '.data.user.projectsV2.nodes[]
+             | select(.title == $title)
+             | .fields.nodes[]
+             | select(.name == "Status")
+             | .options[]
+             | select((.name | ascii_downcase) == ($status | ascii_downcase))
+             | .id' | head -n 1)
+
+          if [ -z "$OPTION_ID" ] || [ "$OPTION_ID" = "null" ]; then
+            echo "Status option not found: $TARGET_STATUS"
+            echo "Check that your project has this exact Status option:"
+            echo "$TARGET_STATUS"
+            exit 1
+          fi
+
+          update_issue_status() {
+            local ISSUE_NUMBER="$1"
+
+            echo "Updating issue #$ISSUE_NUMBER to status: $TARGET_STATUS"
+
+            ISSUE_JSON=$(gh api graphql \
+              -f owner="$REPO_OWNER" \
+              -f repo="$REPO_NAME" \
+              -F number="$ISSUE_NUMBER" \
+              -f query='
+                query($owner: String!, $repo: String!, $number: Int!) {
+                  repository(owner: $owner, name: $repo) {
+                    issue(number: $number) {
+                      id
+                      title
+                      projectItems(first: 50) {
+                        nodes {
+                          id
+                          project {
+                            id
+                            title
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ')
+
+            ISSUE_ID=$(echo "$ISSUE_JSON" | jq -r '.data.repository.issue.id')
+
+            if [ -z "$ISSUE_ID" ] || [ "$ISSUE_ID" = "null" ]; then
+              echo "Issue not found: #$ISSUE_NUMBER"
+              return
+            fi
+
+            ITEM_ID=$(echo "$ISSUE_JSON" | jq -r \
+              --arg title "$PROJECT_TITLE" \
+              '.data.repository.issue.projectItems.nodes[]
+               | select(.project.title == $title)
+               | .id' | head -n 1)
+
+            if [ -z "$ITEM_ID" ] || [ "$ITEM_ID" = "null" ]; then
+              echo "Issue #$ISSUE_NUMBER is not in project. Adding it..."
+
+              ADD_JSON=$(gh api graphql \
+                -f projectId="$PROJECT_ID" \
+                -f contentId="$ISSUE_ID" \
+                -f query='
+                  mutation($projectId: ID!, $contentId: ID!) {
+                    addProjectV2ItemById(input: {
+                      projectId: $projectId
+                      contentId: $contentId
+                    }) {
+                      item {
+                        id
+                      }
+                    }
+                  }
+                ')
+
+              ITEM_ID=$(echo "$ADD_JSON" | jq -r '.data.addProjectV2ItemById.item.id')
+            fi
+
+            gh api graphql \
+              -f projectId="$PROJECT_ID" \
+              -f itemId="$ITEM_ID" \
+              -f fieldId="$STATUS_FIELD_ID" \
+              -f optionId="$OPTION_ID" \
+              -f query='
+                mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                  updateProjectV2ItemFieldValue(input: {
+                    projectId: $projectId
+                    itemId: $itemId
+                    fieldId: $fieldId
+                    value: {
+                      singleSelectOptionId: $optionId
+                    }
+                  }) {
+                    projectV2Item {
+                      id
+                    }
+                  }
+                }
+              '
+
+            echo "Issue #$ISSUE_NUMBER updated."
+          }
+
+          for ISSUE_NUMBER in $ISSUE_NUMBERS; do
+            update_issue_status "$ISSUE_NUMBER"
+          done
