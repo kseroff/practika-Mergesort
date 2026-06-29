@@ -1,4 +1,4 @@
-name: Assign random reviewer
+name: Assign required reviewers
 
 on:
   pull_request:
@@ -15,19 +15,20 @@ permissions:
   contents: read
 
 jobs:
-  assign-reviewer:
-    name: Assign random reviewer
+  assign-reviewers:
+    name: Assign required reviewers
     runs-on: ubuntu-latest
 
     steps:
-      - name: Pick random reviewer
+      - name: Pick two reviewers
         uses: actions/github-script@v7
         with:
           script: |
-            const reviewers = [
+            const admin = "kseroff";
+
+            const developers = [
               "Aleksandr-off",
-              "Eternalhate322",
-              "kseroff"
+              "Eternalhate322"
             ];
 
             const pr = context.payload.pull_request;
@@ -37,25 +38,38 @@ jobs:
               return;
             }
 
-            const author = pr.user.login.toLowerCase();
+            const author = pr.user.login;
+            const authorLower = author.toLowerCase();
 
-            const candidates = reviewers.filter(
-              reviewer => reviewer.toLowerCase() !== author
+            let reviewers = [];
+
+            if (authorLower === "aleksandr-off") {
+              reviewers = ["Eternalhate322", admin];
+            } else if (authorLower === "eternalhate322") {
+              reviewers = ["Aleksandr-off", admin];
+            } else if (authorLower === admin.toLowerCase()) {
+              reviewers = developers;
+            } else {
+              reviewers = [admin, ...developers];
+            }
+
+            reviewers = reviewers.filter(
+              reviewer => reviewer.toLowerCase() !== authorLower
             );
 
-            if (candidates.length === 0) {
+            reviewers = [...new Set(reviewers)];
+
+            if (reviewers.length === 0) {
               core.warning("No reviewers available after excluding PR author.");
               return;
             }
 
-            const selected = candidates[Math.floor(Math.random() * candidates.length)];
-
-            core.info(`PR author: ${pr.user.login}`);
-            core.info(`Selected reviewer: ${selected}`);
+            core.info(`PR author: ${author}`);
+            core.info(`Reviewers: ${reviewers.join(", ")}`);
 
             await github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: pr.number,
-              reviewers: [selected]
+              reviewers: reviewers
             });
