@@ -4,11 +4,99 @@
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 // Глобальные переменные
 int currentArray[MAX_SIZE];
 int currentSize = 0;
 bool arrayLoaded = false;
+
+// ===== ФУНКЦИИ ВАЛИДАЦИИ =====
+
+void clearInputBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF) {}
+}
+
+bool validateSize(int size) {
+    if (size < MIN_SIZE) {
+        printf("❌ Ошибка: размер массива слишком маленький (минимум %d).\n", MIN_SIZE);
+        return false;
+    }
+    if (size > MAX_SIZE) {
+        printf("❌ Ошибка: размер массива слишком большой (максимум %d).\n", MAX_SIZE);
+        return false;
+    }
+    return true;
+}
+
+bool validateFileExists(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("❌ Ошибка: файл '%s' не найден или не может быть открыт.\n", filename);
+        return false;
+    }
+    fclose(file);
+    return true;
+}
+
+bool validateFileContent(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) return false;
+    
+    int num;
+    int count = 0;
+    int result;
+    bool hasValidNumber = false;
+    
+    while ((result = fscanf(file, "%d", &num)) != EOF) {
+        if (result == 0) {
+            // Если не удалось прочитать число, пропускаем один символ
+            fgetc(file);
+            continue;
+        }
+        hasValidNumber = true;
+        count++;
+        if (count > MAX_SIZE) {
+            printf("❌ Ошибка: в файле слишком много чисел (максимум %d).\n", MAX_SIZE);
+            fclose(file);
+            return false;
+        }
+    }
+    
+    fclose(file);
+    
+    if (!hasValidNumber || count == 0) {
+        printf("❌ Ошибка: файл не содержит числовых данных или пуст.\n");
+        return false;
+    }
+    
+    if (count < MIN_SIZE) {
+        printf("❌ Ошибка: в файле слишком мало чисел (минимум %d, найдено %d).\n", MIN_SIZE, count);
+        return false;
+    }
+    
+    return true;
+}
+
+bool validateNumericInput(const char* str) {
+    if (str == NULL || strlen(str) == 0) {
+        return false;
+    }
+    
+    int i = 0;
+    // Пропускаем знак минуса
+    if (str[0] == '-') i = 1;
+    
+    for (; str[i] != '\0'; i++) {
+        if (!isdigit(str[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// ===== ОСНОВНОЙ КОД MERGESORT =====
 
 void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
     int n1 = mid - left + 1;
@@ -128,12 +216,27 @@ void clearArray() {
 }
 
 void createArrayManually() {
+    char input[100];
     int size;
-    printf("Введите размер массива (1-%d): ", MAX_SIZE);
-    scanf("%d", &size);
     
-    if (size < 1 || size > MAX_SIZE) {
-        printf("❌ Неверный размер!\n");
+    printf("Введите размер массива (%d-%d): ", MIN_SIZE, MAX_SIZE);
+    fgets(input, sizeof(input), stdin);
+    
+    // Проверка на пустой ввод
+    if (input[0] == '\n') {
+        printf("❌ Ошибка: пустой ввод. Попробуйте снова.\n");
+        return;
+    }
+    
+    // Проверка, что ввод - число
+    if (!validateNumericInput(input)) {
+        printf("❌ Ошибка: введите целое число.\n");
+        return;
+    }
+    
+    size = atoi(input);
+    
+    if (!validateSize(size)) {
         return;
     }
     
@@ -142,20 +245,37 @@ void createArrayManually() {
     arrayLoaded = true;
     
     printf("Введите %d целых чисел через пробел: ", size);
-    for (int i = 0; i < size; i++) {
-        scanf("%d", &currentArray[i]);
+    
+    int count = 0;
+    while (count < size) {
+        scanf("%d", &currentArray[count]);
+        count++;
     }
+    clearInputBuffer();
     
     printf("✅ Массив создан!\n");
 }
 
 void generateRandomArray() {
+    char input[100];
     int size;
-    printf("Введите размер массива (1-%d): ", MAX_SIZE);
-    scanf("%d", &size);
     
-    if (size < 1 || size > MAX_SIZE) {
-        printf("❌ Неверный размер!\n");
+    printf("Введите размер массива (%d-%d): ", MIN_SIZE, MAX_SIZE);
+    fgets(input, sizeof(input), stdin);
+    
+    if (input[0] == '\n') {
+        printf("❌ Ошибка: пустой ввод. Попробуйте снова.\n");
+        return;
+    }
+    
+    if (!validateNumericInput(input)) {
+        printf("❌ Ошибка: введите целое число.\n");
+        return;
+    }
+    
+    size = atoi(input);
+    
+    if (!validateSize(size)) {
         return;
     }
     
@@ -173,26 +293,34 @@ void generateRandomArray() {
 
 void loadArrayFromFile() {
     char filename[100];
-    printf("Введите имя файла (например, input.txt): ");
-    scanf("%s", filename);
     
-    FILE* file = fopen(filename, "r");
-    if (file == NULL) {
-        printf("❌ Не удалось открыть файл '%s'!\n", filename);
+    printf("Введите имя файла (например, input.txt): ");
+    fgets(filename, sizeof(filename), stdin);
+    
+    // Убираем символ новой строки
+    filename[strcspn(filename, "\n")] = '\0';
+    
+    if (strlen(filename) == 0) {
+        printf("❌ Ошибка: пустое имя файла.\n");
+        return;
+    }
+    
+    if (!validateFileExists(filename)) {
+        return;
+    }
+    
+    if (!validateFileContent(filename)) {
         return;
     }
     
     clearArray();
+    
+    FILE* file = fopen(filename, "r");
     int size = 0;
     while (fscanf(file, "%d", &currentArray[size]) == 1 && size < MAX_SIZE) {
         size++;
     }
     fclose(file);
-    
-    if (size == 0) {
-        printf("❌ Файл пуст или содержит нечисловые данные!\n");
-        return;
-    }
     
     currentSize = size;
     arrayLoaded = true;

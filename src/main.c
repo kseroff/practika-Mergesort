@@ -11,7 +11,23 @@ int main() {
     
     while (1) {
         showMenu();
-        scanf("%d", &choice);
+        
+        char input[100];
+        fgets(input, sizeof(input), stdin);
+        
+        // Проверка на пустой ввод
+        if (input[0] == '\n') {
+            printf("❌ Ошибка: пустой ввод. Выберите действие от 0 до 6.\n");
+            continue;
+        }
+        
+        // Проверка, что ввод - число
+        if (!validateNumericInput(input)) {
+            printf("❌ Ошибка: введите число от 0 до 6.\n");
+            continue;
+        }
+        
+        choice = atoi(input);
         
         switch (choice) {
             case 1:
@@ -43,7 +59,7 @@ int main() {
                 return 0;
                 
             default:
-                printf("❌ Неверный выбор! Попробуйте снова.\n");
+                printf("❌ Ошибка: неверный выбор! Введите число от 0 до 6.\n");
                 break;
         }
     }

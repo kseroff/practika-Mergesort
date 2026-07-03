@@ -4,6 +4,7 @@
 #include <stdbool.h>
 
 #define MAX_SIZE 10000
+#define MIN_SIZE 1
 
 typedef struct {
     int comparisons;
@@ -30,5 +31,12 @@ void loadArrayFromFile();
 void sortCurrentArray();
 void printCurrentArray();
 void clearArray();
+
+// Функции валидации
+bool validateSize(int size);
+bool validateFileExists(const char* filename);
+bool validateFileContent(const char* filename);
+bool validateNumericInput(const char* str);
+void clearInputBuffer();
 
 #endif
