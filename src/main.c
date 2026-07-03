@@ -15,15 +15,13 @@ int main() {
         char input[100];
         fgets(input, sizeof(input), stdin);
         
-        // Проверка на пустой ввод
         if (input[0] == '\n') {
-            printf("❌ Ошибка: пустой ввод. Выберите действие от 0 до 6.\n");
+            printf("❌ Ошибка: пустой ввод. Выберите действие от 0 до 8.\n");
             continue;
         }
         
-        // Проверка, что ввод - число
         if (!validateNumericInput(input)) {
-            printf("❌ Ошибка: введите число от 0 до 6.\n");
+            printf("❌ Ошибка: введите число от 0 до 8.\n");
             continue;
         }
         
@@ -51,6 +49,14 @@ int main() {
                 break;
                 
             case 6:
+                saveArrayToFile();
+                break;
+                
+            case 7:
+                loadArrayFromFileWithPath();
+                break;
+                
+            case 8:
                 clearArray();
                 break;
                 
@@ -59,7 +65,7 @@ int main() {
                 return 0;
                 
             default:
-                printf("❌ Ошибка: неверный выбор! Введите число от 0 до 6.\n");
+                printf("❌ Ошибка: неверный выбор! Введите число от 0 до 8.\n");
                 break;
         }
     }

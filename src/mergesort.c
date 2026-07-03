@@ -51,7 +51,6 @@ bool validateFileContent(const char* filename) {
     
     while ((result = fscanf(file, "%d", &num)) != EOF) {
         if (result == 0) {
-            // Если не удалось прочитать число, пропускаем один символ
             fgetc(file);
             continue;
         }
@@ -85,7 +84,6 @@ bool validateNumericInput(const char* str) {
     }
     
     int i = 0;
-    // Пропускаем знак минуса
     if (str[0] == '-') i = 1;
     
     for (; str[i] != '\0'; i++) {
@@ -187,6 +185,91 @@ void printArray(int arr[], int size) {
     printf("\n");
 }
 
+// ===== НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ФАЙЛАМИ =====
+
+void saveArrayToFile() {
+    if (!arrayLoaded || currentSize == 0) {
+        printf("❌ Нет данных для сохранения! Сначала создайте или загрузите массив.\n");
+        return;
+    }
+    
+    char filename[100];
+    printf("Введите имя файла для сохранения (например, output.txt): ");
+    fgets(filename, sizeof(filename), stdin);
+    filename[strcspn(filename, "\n")] = '\0';
+    
+    if (strlen(filename) == 0) {
+        printf("❌ Ошибка: пустое имя файла.\n");
+        return;
+    }
+    
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("❌ Ошибка: не удалось создать файл '%s'.\n", filename);
+        return;
+    }
+    
+    // Сохраняем массив в понятном формате
+    fprintf(file, "=== Отсортированный массив ===\n");
+    fprintf(file, "Размер: %d элементов\n", currentSize);
+    fprintf(file, "Элементы:\n");
+    
+    for (int i = 0; i < currentSize; i++) {
+        fprintf(file, "%d", currentArray[i]);
+        if ((i + 1) % 10 == 0) {
+            fprintf(file, "\n");
+        } else if (i < currentSize - 1) {
+            fprintf(file, " ");
+        }
+    }
+    fprintf(file, "\n");
+    fprintf(file, "=== Конец файла ===\n");
+    
+    fclose(file);
+    printf("✅ Массив сохранён в файл '%s' (%d элементов)!\n", filename, currentSize);
+}
+
+void loadArrayFromFileWithPath() {
+    char filename[100];
+    
+    printf("Введите путь к файлу (например, input.txt или C:/data/input.txt): ");
+    fgets(filename, sizeof(filename), stdin);
+    filename[strcspn(filename, "\n")] = '\0';
+    
+    if (strlen(filename) == 0) {
+        printf("❌ Ошибка: пустое имя файла.\n");
+        return;
+    }
+    
+    if (!validateFileExists(filename)) {
+        return;
+    }
+    
+    if (!validateFileContent(filename)) {
+        return;
+    }
+    
+    clearArray();
+    
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("❌ Ошибка: не удалось открыть файл '%s'.\n", filename);
+        return;
+    }
+    
+    int size = 0;
+    while (fscanf(file, "%d", &currentArray[size]) == 1 && size < MAX_SIZE) {
+        size++;
+    }
+    fclose(file);
+    
+    currentSize = size;
+    arrayLoaded = true;
+    printf("✅ Загружено %d элементов из файла '%s'!\n", size, filename);
+}
+
+// ===== ФУНКЦИИ ИНТЕРФЕЙСА =====
+
 void showMenu() {
     printf("\n╔══════════════════════════════════════════╗\n");
     printf("║     MERGESORT - КОНСОЛЬНЫЙ ИНТЕРФЕЙС    ║\n");
@@ -196,7 +279,9 @@ void showMenu() {
     printf("║  3. Загрузить массив из файла           ║\n");
     printf("║  4. Сортировать текущий массив          ║\n");
     printf("║  5. Вывести текущий массив              ║\n");
-    printf("║  6. Очистить массив                     ║\n");
+    printf("║  6. Сохранить массив в файл             ║\n");
+    printf("║  7. Загрузить массив по пути            ║\n");
+    printf("║  8. Очистить массив                     ║\n");
     printf("║  0. Выйти                               ║\n");
     printf("╚══════════════════════════════════════════╝\n");
     printf("\nТекущий массив: ");
@@ -222,13 +307,11 @@ void createArrayManually() {
     printf("Введите размер массива (%d-%d): ", MIN_SIZE, MAX_SIZE);
     fgets(input, sizeof(input), stdin);
     
-    // Проверка на пустой ввод
     if (input[0] == '\n') {
         printf("❌ Ошибка: пустой ввод. Попробуйте снова.\n");
         return;
     }
     
-    // Проверка, что ввод - число
     if (!validateNumericInput(input)) {
         printf("❌ Ошибка: введите целое число.\n");
         return;
@@ -296,8 +379,6 @@ void loadArrayFromFile() {
     
     printf("Введите имя файла (например, input.txt): ");
     fgets(filename, sizeof(filename), stdin);
-    
-    // Убираем символ новой строки
     filename[strcspn(filename, "\n")] = '\0';
     
     if (strlen(filename) == 0) {
