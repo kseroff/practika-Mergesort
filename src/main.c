@@ -1,4 +1,7 @@
+$ notepad main.c
 #include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 #include "mergesort.h"
 
 void printArray(int arr[], int size) {
@@ -7,78 +10,69 @@ void printArray(int arr[], int size) {
     printf("\n");
 }
 
+void copyArray(int source[], int dest[], int size) {
+    for (int i = 0; i < size; i++)
+        dest[i] = source[i];
+}
+
+void runSortTest(int original[], int size, char* testName) {
+    printf("\n========== %s ==========\n", testName);
+
+    if (size <= 20) {
+        printf("Исходный массив: ");
+        printArray(original, size);
+    }
+
+    int* arr = (int*)malloc(size * sizeof(int));
+    copyArray(original, arr, size);
+
+    MergeSortMetrics metrics = {0, 0, 0, size, 0.0};
+
+    clock_t start = clock();
+    mergeSort(arr, 0, size - 1, &metrics);
+    clock_t end = clock();
+    metrics.timeMs = ((double)(end - start) / CLOCKS_PER_SEC) * 1000.0;
+
+    if (size <= 20) {
+        printf("Отсортированный: ");
+        printArray(arr, size);
+    }
+
+    printMetrics(metrics);
+    free(arr);
+}
+
 int main() {
-    // Обычный массив
     int arr1[] = {38, 27, 43, 3, 9, 82, 10};
     int size1 = sizeof(arr1) / sizeof(arr1[0]);
-    
-    printf("Обычный массив:\n");
-    printf("Исходный: ");
-    printArray(arr1, size1);
-    mergeSort(arr1, 0, size1 - 1);
-    printf("Отсортированный: ");
-    printArray(arr1, size1);
-    printf("\n");
+    runSortTest(arr1, size1, "Обычный массив");
 
-    // Уже отсортированный массив
-    int arr2[] = {1, 2, 3, 4, 5, 6, 7};
+    int arr2[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
     int size2 = sizeof(arr2) / sizeof(arr2[0]);
-    
-    printf("Отсортированный массив:\n");
-    printf("Исходный: ");
-    printArray(arr2, size2);
-    mergeSort(arr2, 0, size2 - 1);
-    printf("Отсортированный: ");
-    printArray(arr2, size2);
-    printf("\n");
+    runSortTest(arr2, size2, "Отсортированный массив");
 
-    // Массив в обратном порядке
-    int arr3[] = {9, 8, 7, 6, 5, 4, 3};
+    int arr3[] = {10, 9, 8, 7, 6, 5, 4, 3, 2, 1};
     int size3 = sizeof(arr3) / sizeof(arr3[0]);
-    
-    printf("Массив в обратном порядке:\n");
-    printf("Исходный: ");
-    printArray(arr3, size3);
-    mergeSort(arr3, 0, size3 - 1);
-    printf("Отсортированный: ");
-    printArray(arr3, size3);
-    printf("\n");
+    runSortTest(arr3, size3, "Обратный порядок");
 
-    // Массив с одинаковыми значениями
-    int arr4[] = {5, 5, 5, 5, 5, 5, 5};
+    int arr4[] = {5, 5, 5, 5, 5, 5, 5, 5, 5, 5};
     int size4 = sizeof(arr4) / sizeof(arr4[0]);
-    
-    printf("Массив с одинаковыми значениями:\n");
-    printf("Исходный: ");
-    printArray(arr4, size4);
-    mergeSort(arr4, 0, size4 - 1);
-    printf("Отсортированный: ");
-    printArray(arr4, size4);
-    printf("\n");
+    runSortTest(arr4, size4, "Одинаковые значения");
 
-    // Массив с отрицательными числами
-    int arr5[] = {-5, 3, -8, 0, -2, 7, -1};
+    int arr5[] = {-5, 3, -8, 0, -2, 7, -1, 4, -3, 6};
     int size5 = sizeof(arr5) / sizeof(arr5[0]);
-    
-    printf("Массив с отрицательными числами:\n");
-    printf("Исходный: ");
-    printArray(arr5, size5);
-    mergeSort(arr5, 0, size5 - 1);
-    printf("Отсортированный: ");
-    printArray(arr5, size5);
-    printf("\n");
+    runSortTest(arr5, size5, "Отрицательные числа");
 
-    // Массив из одного элемента
     int arr6[] = {42};
     int size6 = sizeof(arr6) / sizeof(arr6[0]);
-    
-    printf("Массив из одного элемента:\n");
-    printf("Исходный: ");
-    printArray(arr6, size6);
-    mergeSort(arr6, 0, size6 - 1);
-    printf("Отсортированный: ");
-    printArray(arr6, size6);
-    printf("\n");
+    runSortTest(arr6, size6, "Один элемент");
+
+    int bigSize = 1000;
+    int* bigArr = (int*)malloc(bigSize * sizeof(int));
+    for (int i = 0; i < bigSize; i++) {
+        bigArr[i] = rand() % 10000;
+    }
+    runSortTest(bigArr, bigSize, "Большой массив (1000 элементов)");
+    free(bigArr);
 
     return 0;
-}
