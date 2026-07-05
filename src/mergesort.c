@@ -6,8 +6,16 @@ void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
     int n1 = mid - left + 1;
     int n2 = right - mid;
 
+    // Исправлено: динамическая память вместо VLA с проверкой
     int* leftArr = (int*)malloc(n1 * sizeof(int));
     int* rightArr = (int*)malloc(n2 * sizeof(int));
+
+    if (leftArr == NULL || rightArr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        free(leftArr);
+        free(rightArr);
+        return;
+    }
 
     for (int i = 0; i < n1; i++) {
         leftArr[i] = arr[left + i];
@@ -63,7 +71,7 @@ void mergeSort(int arr[], int left, int right, MergeSortMetrics* metrics) {
 }
 
 void printMetrics(MergeSortMetrics metrics) {
-    printf("\n📊 МЕТРИКИ MERGESORT:\n");
+    printf("\nМЕТРИКИ MERGESORT:\n");
     printf("   Сравнений:            %d\n", metrics.comparisons);
     printf("   Копирований:          %d\n", metrics.copies);
     printf("   Рекурсивных вызовов:  %d\n", metrics.recursiveCalls);

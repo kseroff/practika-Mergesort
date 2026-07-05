@@ -1,4 +1,3 @@
-$ notepad main.c
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -23,7 +22,12 @@ void runSortTest(int original[], int size, char* testName) {
         printArray(original, size);
     }
 
+    // Исправлено: проверка malloc
     int* arr = (int*)malloc(size * sizeof(int));
+    if (arr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        return;
+    }
     copyArray(original, arr, size);
 
     MergeSortMetrics metrics = {0, 0, 0, size, 0.0};
@@ -67,8 +71,13 @@ int main() {
     int size6 = sizeof(arr6) / sizeof(arr6[0]);
     runSortTest(arr6, size6, "Один элемент");
 
+    // Исправлено: проверка malloc для большого массива
     int bigSize = 1000;
     int* bigArr = (int*)malloc(bigSize * sizeof(int));
+    if (bigArr == NULL) {
+        printf("Ошибка: не удалось выделить память для большого массива!\n");
+        return 1;
+    }
     for (int i = 0; i < bigSize; i++) {
         bigArr[i] = rand() % 10000;
     }
@@ -76,3 +85,4 @@ int main() {
     free(bigArr);
 
     return 0;
+}
