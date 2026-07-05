@@ -20,11 +20,11 @@ void clearInputBuffer() {
 
 bool validateSize(int size) {
     if (size < MIN_SIZE) {
-        printf("❌ Ошибка: размер массива слишком маленький (минимум %d).\n", MIN_SIZE);
+        printf("Ошибка: размер массива слишком маленький (минимум %d).\n", MIN_SIZE);
         return false;
     }
     if (size > MAX_SIZE) {
-        printf("❌ Ошибка: размер массива слишком большой (максимум %d).\n", MAX_SIZE);
+        printf("Ошибка: размер массива слишком большой (максимум %d).\n", MAX_SIZE);
         return false;
     }
     return true;
@@ -33,7 +33,7 @@ bool validateSize(int size) {
 bool validateFileExists(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) {
-        printf("❌ Ошибка: файл '%s' не найден или не может быть открыт.\n", filename);
+        printf("Ошибка: файл '%s' не найден или не может быть открыт.\n", filename);
         return false;
     }
     fclose(file);
@@ -43,55 +43,42 @@ bool validateFileExists(const char* filename) {
 bool validateFileContent(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (file == NULL) return false;
-    
+
     int num;
     int count = 0;
-    int result;
     bool hasValidNumber = false;
-    
-    while ((result = fscanf(file, "%d", &num)) != EOF) {
-        if (result == 0) {
-            // Если не удалось прочитать число, пропускаем один символ
-            fgetc(file);
-            continue;
-        }
+
+    while (fscanf(file, "%d", &num) != EOF) {
         hasValidNumber = true;
         count++;
         if (count > MAX_SIZE) {
-            printf("❌ Ошибка: в файле слишком много чисел (максимум %d).\n", MAX_SIZE);
+            printf("Ошибка: в файле слишком много чисел (максимум %d).\n", MAX_SIZE);
             fclose(file);
             return false;
         }
     }
-    
+
     fclose(file);
-    
+
     if (!hasValidNumber || count == 0) {
-        printf("❌ Ошибка: файл не содержит числовых данных или пуст.\n");
+        printf("Ошибка: файл не содержит числовых данных или пуст.\n");
         return false;
     }
-    
+
     if (count < MIN_SIZE) {
-        printf("❌ Ошибка: в файле слишком мало чисел (минимум %d, найдено %d).\n", MIN_SIZE, count);
+        printf("Ошибка: в файле слишком мало чисел (минимум %d, найдено %d).\n", MIN_SIZE, count);
         return false;
     }
-    
+
     return true;
 }
 
 bool validateNumericInput(const char* str) {
-    if (str == NULL || strlen(str) == 0) {
-        return false;
-    }
-    
+    if (str == NULL || strlen(str) == 0) return false;
     int i = 0;
-    // Пропускаем знак минуса
     if (str[0] == '-') i = 1;
-    
     for (; str[i] != '\0'; i++) {
-        if (!isdigit(str[i])) {
-            return false;
-        }
+        if (!isdigit(str[i])) return false;
     }
     return true;
 }
@@ -104,6 +91,13 @@ void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
 
     int* leftArr = (int*)malloc(n1 * sizeof(int));
     int* rightArr = (int*)malloc(n2 * sizeof(int));
+
+    if (leftArr == NULL || rightArr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        free(leftArr);
+        free(rightArr);
+        return;
+    }
 
     for (int i = 0; i < n1; i++) {
         leftArr[i] = arr[left + i];
@@ -149,9 +143,7 @@ void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
 
 void mergeSort(int arr[], int left, int right, MergeSortMetrics* metrics) {
     metrics->recursiveCalls++;
-
     if (left >= right) return;
-
     int mid = left + (right - left) / 2;
     mergeSort(arr, left, mid, metrics);
     mergeSort(arr, mid + 1, right, metrics);
@@ -159,7 +151,7 @@ void mergeSort(int arr[], int left, int right, MergeSortMetrics* metrics) {
 }
 
 void printMetrics(MergeSortMetrics metrics) {
-    printf("\n📊 МЕТРИКИ MERGESORT:\n");
+    printf("\nМЕТРИКИ MERGESORT:\n");
     printf("   Сравнений:            %d\n", metrics.comparisons);
     printf("   Копирований:          %d\n", metrics.copies);
     printf("   Рекурсивных вызовов:  %d\n", metrics.recursiveCalls);
@@ -172,195 +164,170 @@ void printArray(int arr[], int size) {
         printf("   (массив пуст)\n");
         return;
     }
-    
     if (size > 20) {
-        for (int i = 0; i < 10; i++)
-            printf("%d ", arr[i]);
+        for (int i = 0; i < 10; i++) printf("%d ", arr[i]);
         printf("... ");
-        for (int i = size - 10; i < size; i++)
-            printf("%d ", arr[i]);
+        for (int i = size - 10; i < size; i++) printf("%d ", arr[i]);
         printf("\n   (показаны первые 10 и последние 10 из %d элементов)", size);
     } else {
-        for (int i = 0; i < size; i++)
-            printf("%d ", arr[i]);
+        for (int i = 0; i < size; i++) printf("%d ", arr[i]);
     }
     printf("\n");
 }
 
 void showMenu() {
-    printf("\n╔══════════════════════════════════════════╗\n");
-    printf("║     MERGESORT - КОНСОЛЬНЫЙ ИНТЕРФЕЙС    ║\n");
-    printf("╠══════════════════════════════════════════╣\n");
-    printf("║  1. Создать массив вручную              ║\n");
-    printf("║  2. Сгенерировать случайный массив      ║\n");
-    printf("║  3. Загрузить массив из файла           ║\n");
-    printf("║  4. Сортировать текущий массив          ║\n");
-    printf("║  5. Вывести текущий массив              ║\n");
-    printf("║  6. Очистить массив                     ║\n");
-    printf("║  0. Выйти                               ║\n");
-    printf("╚══════════════════════════════════════════╝\n");
-    printf("\nТекущий массив: ");
-    if (arrayLoaded && currentSize > 0) {
-        printf("%d элементов", currentSize);
-    } else {
-        printf("(пусто)");
-    }
-    printf("\n");
-    printf("Выберите действие: ");
+    printf("\n========================================\n");
+    printf("     MERGESORT - КОНСОЛЬНЫЙ ИНТЕРФЕЙС\n");
+    printf("========================================\n");
+    printf("  1. Создать массив вручную\n");
+    printf("  2. Сгенерировать случайный массив\n");
+    printf("  3. Загрузить массив из файла\n");
+    printf("  4. Сортировать текущий массив\n");
+    printf("  5. Вывести текущий массив\n");
+    printf("  6. Очистить массив\n");
+    printf("  0. Выйти\n");
+    printf("========================================\n");
+    printf("Текущий массив: ");
+    if (arrayLoaded && currentSize > 0) printf("%d элементов", currentSize);
+    else printf("(пусто)");
+    printf("\nВыберите действие: ");
 }
 
 void clearArray() {
     currentSize = 0;
     arrayLoaded = false;
-    printf("✅ Массив очищен.\n");
+    printf("Массив очищен.\n");
 }
 
 void createArrayManually() {
     char input[100];
     int size;
-    
+
     printf("Введите размер массива (%d-%d): ", MIN_SIZE, MAX_SIZE);
     fgets(input, sizeof(input), stdin);
-    
-    // Проверка на пустой ввод
+
     if (input[0] == '\n') {
-        printf("❌ Ошибка: пустой ввод. Попробуйте снова.\n");
+        printf("Ошибка: пустой ввод. Попробуйте снова.\n");
         return;
     }
-    
-    // Проверка, что ввод - число
+
     if (!validateNumericInput(input)) {
-        printf("❌ Ошибка: введите целое число.\n");
+        printf("Ошибка: введите целое число.\n");
         return;
     }
-    
+
     size = atoi(input);
-    
-    if (!validateSize(size)) {
-        return;
-    }
-    
+
+    if (!validateSize(size)) return;
+
     clearArray();
     currentSize = size;
     arrayLoaded = true;
-    
+
     printf("Введите %d целых чисел через пробел: ", size);
-    
-    int count = 0;
-    while (count < size) {
-        scanf("%d", &currentArray[count]);
-        count++;
-    }
+    for (int i = 0; i < size; i++) scanf("%d", &currentArray[i]);
     clearInputBuffer();
-    
-    printf("✅ Массив создан!\n");
+
+    printf("Массив создан.\n");
 }
 
 void generateRandomArray() {
     char input[100];
     int size;
-    
+
     printf("Введите размер массива (%d-%d): ", MIN_SIZE, MAX_SIZE);
     fgets(input, sizeof(input), stdin);
-    
+
     if (input[0] == '\n') {
-        printf("❌ Ошибка: пустой ввод. Попробуйте снова.\n");
+        printf("Ошибка: пустой ввод. Попробуйте снова.\n");
         return;
     }
-    
+
     if (!validateNumericInput(input)) {
-        printf("❌ Ошибка: введите целое число.\n");
+        printf("Ошибка: введите целое число.\n");
         return;
     }
-    
+
     size = atoi(input);
-    
-    if (!validateSize(size)) {
-        return;
-    }
-    
+
+    if (!validateSize(size)) return;
+
     clearArray();
     currentSize = size;
     arrayLoaded = true;
-    
+
     srand(time(NULL));
     for (int i = 0; i < size; i++) {
         currentArray[i] = rand() % 20001 - 10000;
     }
-    
-    printf("✅ Сгенерирован случайный массив из %d элементов!\n", size);
+
+    printf("Сгенерирован случайный массив из %d элементов.\n", size);
 }
 
 void loadArrayFromFile() {
     char filename[100];
-    
+
     printf("Введите имя файла (например, input.txt): ");
     fgets(filename, sizeof(filename), stdin);
-    
-    // Убираем символ новой строки
     filename[strcspn(filename, "\n")] = '\0';
-    
+
     if (strlen(filename) == 0) {
-        printf("❌ Ошибка: пустое имя файла.\n");
+        printf("Ошибка: пустое имя файла.\n");
         return;
     }
-    
-    if (!validateFileExists(filename)) {
-        return;
-    }
-    
-    if (!validateFileContent(filename)) {
-        return;
-    }
-    
+
+    if (!validateFileExists(filename)) return;
+    if (!validateFileContent(filename)) return;
+
     clearArray();
-    
+
     FILE* file = fopen(filename, "r");
     int size = 0;
-    while (fscanf(file, "%d", &currentArray[size]) == 1 && size < MAX_SIZE) {
+    while (size < MAX_SIZE && fscanf(file, "%d", &currentArray[size]) == 1) {
         size++;
     }
     fclose(file);
-    
+
     currentSize = size;
     arrayLoaded = true;
-    printf("✅ Загружено %d элементов из файла '%s'!\n", size, filename);
+    printf("Загружено %d элементов из файла '%s'.\n", size, filename);
 }
 
 void sortCurrentArray() {
     if (!arrayLoaded || currentSize == 0) {
-        printf("❌ Нет данных для сортировки! Сначала создайте или загрузите массив.\n");
+        printf("Нет данных для сортировки! Сначала создайте или загрузите массив.\n");
         return;
     }
-    
+
     int* arrCopy = (int*)malloc(currentSize * sizeof(int));
-    for (int i = 0; i < currentSize; i++) {
-        arrCopy[i] = currentArray[i];
+    if (arrCopy == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        return;
     }
-    
+
+    for (int i = 0; i < currentSize; i++) arrCopy[i] = currentArray[i];
+
     MergeSortMetrics metrics = {0, 0, 0, currentSize, 0.0};
-    
+
     clock_t start = clock();
     mergeSort(arrCopy, 0, currentSize - 1, &metrics);
     clock_t end = clock();
     metrics.timeMs = ((double)(end - start) / CLOCKS_PER_SEC) * 1000.0;
-    
-    for (int i = 0; i < currentSize; i++) {
-        currentArray[i] = arrCopy[i];
-    }
+
+    for (int i = 0; i < currentSize; i++) currentArray[i] = arrCopy[i];
     free(arrCopy);
-    
-    printf("✅ Массив отсортирован!\n");
+
+    printf("Массив отсортирован.\n");
     printMetrics(metrics);
 }
 
 void printCurrentArray() {
     if (!arrayLoaded || currentSize == 0) {
-        printf("❌ Нет данных для вывода! Сначала создайте или загрузите массив.\n");
+        printf("Нет данных для вывода! Сначала создайте или загрузите массив.\n");
         return;
     }
-    
-    printf("\n📋 Текущий массив (%d элементов):\n", currentSize);
+
+    printf("\nТекущий массив (%d элементов):\n", currentSize);
     printf("   ");
     printArray(currentArray, currentSize);
 }
