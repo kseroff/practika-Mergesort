@@ -1,10 +1,20 @@
 #include "mergesort.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 void merge(int arr[], int left, int mid, int right) {
     int n1 = mid - left + 1;
     int n2 = right - mid;
 
-    int leftArr[n1], rightArr[n2];
+    int* leftArr = (int*)malloc(n1 * sizeof(int));
+    int* rightArr = (int*)malloc(n2 * sizeof(int));
+
+    if (leftArr == NULL || rightArr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        free(leftArr);
+        free(rightArr);
+        return;
+    }
 
     for (int i = 0; i < n1; i++)
         leftArr[i] = arr[left + i];
@@ -34,6 +44,9 @@ void merge(int arr[], int left, int mid, int right) {
         j++;
         k++;
     }
+
+    free(leftArr);
+    free(rightArr);
 }
 
 void mergeSort(int arr[], int left, int right) {
