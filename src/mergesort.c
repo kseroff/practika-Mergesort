@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 
+
 // Глобальные переменные
 int currentArray[MAX_SIZE];
 int currentSize = 0;
