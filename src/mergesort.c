@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include <stdbool.h>
 
+
 // Глобальные переменные
 int currentArray[MAX_SIZE];
 int currentSize = 0;
@@ -102,6 +103,13 @@ void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
 
     int* leftArr = (int*)malloc(n1 * sizeof(int));
     int* rightArr = (int*)malloc(n2 * sizeof(int));
+
+    if (leftArr == NULL || rightArr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        free(leftArr);
+        free(rightArr);
+        return;
+    }
 
     if (leftArr == NULL || rightArr == NULL) {
         printf("Ошибка: не удалось выделить память!\n");
