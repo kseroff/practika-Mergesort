@@ -94,6 +94,13 @@ void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
         return;
     }
 
+    if (leftArr == NULL || rightArr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        free(leftArr);
+        free(rightArr);
+        return;
+    }
+
     for (int i = 0; i < n1; i++) {
         leftArr[i] = arr[left + i];
         metrics->copies++;
