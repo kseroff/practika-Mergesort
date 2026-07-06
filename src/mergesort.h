@@ -14,7 +14,6 @@ typedef struct {
     double timeMs;
 } MergeSortMetrics;
 
-// Глобальный массив
 extern int currentArray[];
 extern int currentSize;
 extern bool arrayLoaded;
@@ -23,7 +22,6 @@ void mergeSort(int arr[], int left, int right, MergeSortMetrics* metrics);
 void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics);
 void printMetrics(MergeSortMetrics metrics);
 
-// Функции для консольного интерфейса
 void showMenu();
 void createArrayManually();
 void generateRandomArray();
@@ -32,11 +30,9 @@ void sortCurrentArray();
 void printCurrentArray();
 void clearArray();
 
-// Функции для работы с файлами (НОВЫЕ)
 void saveArrayToFile();
 void loadArrayFromFileWithPath();
 
-// Функции валидации
 bool validateSize(int size);
 bool validateFileExists(const char* filename);
 bool validateFileContent(const char* filename);
