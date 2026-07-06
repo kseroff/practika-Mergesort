@@ -6,9 +6,15 @@ void merge(int arr[], int left, int mid, int right, MergeSortMetrics* metrics) {
     int n1 = mid - left + 1;
     int n2 = right - mid;
 
-    // Исправлено: динамическая память вместо VLA с проверкой
     int* leftArr = (int*)malloc(n1 * sizeof(int));
     int* rightArr = (int*)malloc(n2 * sizeof(int));
+
+    if (leftArr == NULL || rightArr == NULL) {
+        printf("Ошибка: не удалось выделить память!\n");
+        free(leftArr);
+        free(rightArr);
+        return;
+    }
 
     if (leftArr == NULL || rightArr == NULL) {
         printf("Ошибка: не удалось выделить память!\n");
