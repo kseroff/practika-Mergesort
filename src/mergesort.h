@@ -44,3 +44,4 @@ bool validateNumericInput(const char* str);
 void clearInputBuffer();
 
 #endif
+
