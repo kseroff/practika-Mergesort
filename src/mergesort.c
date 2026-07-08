@@ -317,7 +317,6 @@ void createArrayManually() {
     printf("Введите %d целых чисел через пробел: ", size);
     for (int i = 0; i < size; i++) scanf("%d", &currentArray[i]);
     clearInputBuffer();
-
     printf("Массив создан.\n");
 }
 
@@ -448,6 +447,7 @@ void saveArrayToFile() {
 
     fclose(file);
     printf("Массив сохранён в файл '%s' (%d элементов)!\n", filename, currentSize);
+
 }
 
 void sortCurrentArray() {
@@ -473,7 +473,6 @@ void sortCurrentArray() {
 
     for (int i = 0; i < currentSize; i++) currentArray[i] = arrCopy[i];
     free(arrCopy);
-
     printf("Массив отсортирован.\n");
     printMetrics(metrics);
 }
@@ -483,7 +482,6 @@ void printCurrentArray() {
         printf("Нет данных для вывода! Сначала создайте или загрузите массив.\n");
         return;
     }
-
     printf("\nТекущий массив (%d элементов):\n", currentSize);
     printf("   ");
     printArray(currentArray, currentSize);
