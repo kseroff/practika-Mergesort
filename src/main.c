@@ -8,7 +8,7 @@ int main() {
     int choice;
 
     printf("========================================\n");
-    printf("       DOBRO POZHALOVAT V MERGESORT\n");
+    printf("       DOBRO POZHALOVAT V MERGESORT!\n");
     printf("========================================\n");
 
     while (1) {
@@ -19,13 +19,16 @@ int main() {
             continue;
         }
 
+        // Удаляем символ новой строки
         input[strcspn(input, "\n")] = '\0';
 
+        // Проверка на пустой ввод
         if (strlen(input) == 0) {
             printf("Oshibka: pustoy vvod. Vyberite deystvie ot 0 do 8.\n");
             continue;
         }
 
+        // Проверяем, что ввод содержит только цифры
         int isNumber = 1;
         for (int i = 0; input[i] != '\0'; i++) {
             if (!isdigit(input[i])) {
