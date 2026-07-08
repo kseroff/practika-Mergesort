@@ -32,4 +32,11 @@ void sortCurrentArray();
 void printCurrentArray();
 void clearArray();
 
+bool validateSize(int size);
+bool validateFileExists(const char* filename);
+bool validateFileContent(const char* filename);
+bool validateNumericInput(const char* str);
+void clearInputBuffer();
+
 #endif
+

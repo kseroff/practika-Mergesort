@@ -9,17 +9,26 @@ int main() {
     printf("========================================\n");
     printf("       ДОБРО ПОЖАЛОВАТЬ В MERGESORT!\n");
     printf("========================================\n");
-
+    
     while (1) {
         showMenu();
-
-        // ИСПРАВЛЕНО: проверка ввода
-        if (scanf("%d", &choice) != 1) {
-            printf("Ошибка: введите число!\n");
-            clearInputBuffer();
+        
+        char input[100];
+        fgets(input, sizeof(input), stdin);
+        
+        // Проверка на пустой ввод
+        if (input[0] == '\n') {
+            printf("Ошибка: пустой ввод. Выберите действие от 0 до 6.\n");
             continue;
         }
-
+        
+        // Проверка, что ввод - число
+        if (!validateNumericInput(input)) {
+            printf("Ошибка: введите число от 0 до 6.\n");
+            continue;
+        }
+        
+        choice = atoi(input);
         switch (choice) {
             case 1: createArrayManually(); break;
             case 2: generateRandomArray(); break;

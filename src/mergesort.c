@@ -5,6 +5,7 @@
 #include <time.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdbool.h>
 
 int currentArray[MAX_SIZE];
 int currentSize = 0;
@@ -225,7 +226,7 @@ void createArrayManually() {
     for (int i = 0; i < size; i++) scanf("%d", &currentArray[i]);
     clearInputBuffer();
 
-    printf("Массив создан!\n");
+    printf("Массив создан.\n");
 }
 
 void generateRandomArray() {
@@ -258,7 +259,7 @@ void generateRandomArray() {
         currentArray[i] = rand() % 20001 - 10000;
     }
 
-    printf("Сгенерирован случайный массив из %d элементов!\n", size);
+    printf("Сгенерирован случайный массив из %d элементов.\n", size);
 }
 
 void loadArrayFromFile() {
@@ -281,7 +282,6 @@ void loadArrayFromFile() {
     FILE* file = fopen(filename, "r");
     int size = 0;
 
-    // ИСПРАВЛЕНО: правильный порядок проверки
     while (size < MAX_SIZE && fscanf(file, "%d", &currentArray[size]) == 1) {
         size++;
     }
@@ -289,7 +289,7 @@ void loadArrayFromFile() {
 
     currentSize = size;
     arrayLoaded = true;
-    printf("Загружено %d элементов из файла '%s'!\n", size, filename);
+    printf("Загружено %d элементов из файла '%s'.\n", size, filename);
 }
 
 void loadArrayFromFileWithPath() {
@@ -382,7 +382,7 @@ void sortCurrentArray() {
     for (int i = 0; i < currentSize; i++) currentArray[i] = arrCopy[i];
     free(arrCopy);
 
-    printf("Массив отсортирован!\n");
+    printf("Массив отсортирован.\n");
     printMetrics(metrics);
 }
 
