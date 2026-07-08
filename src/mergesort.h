@@ -32,6 +32,11 @@ void sortCurrentArray();
 void printCurrentArray();
 void clearArray();
 
+// Функции для работы с файлами (НОВЫЕ)
+void saveArrayToFile();
+void loadArrayFromFileWithPath();
+
+// Функции валидации
 bool validateSize(int size);
 bool validateFileExists(const char* filename);
 bool validateFileContent(const char* filename);

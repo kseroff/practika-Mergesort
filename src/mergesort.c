@@ -46,7 +46,11 @@ bool validateFileContent(const char* filename) {
     int count = 0;
     bool hasValidNumber = false;
 
-    while (fscanf(file, "%d", &num) != EOF) {
+    while ((result = fscanf(file, "%d", &num)) != EOF) {
+        if (result == 0) {
+            fgetc(file);
+            continue;
+        }
         hasValidNumber = true;
         count++;
         if (count > MAX_SIZE) {
@@ -171,6 +175,90 @@ void printArray(int arr[], int size) {
     printf("\n");
 }
 
+// ===== НОВЫЕ ФУНКЦИИ ДЛЯ РАБОТЫ С ФАЙЛАМИ =====
+
+void saveArrayToFile() {
+    if (!arrayLoaded || currentSize == 0) {
+        printf("Нет данных для сохранения! Сначала создайте или загрузите массив.\n");
+        return;
+    }
+    
+    char filename[100];
+    printf("Введите имя файла для сохранения (например, output.txt): ");
+    fgets(filename, sizeof(filename), stdin);
+    filename[strcspn(filename, "\n")] = '\0';
+    
+    if (strlen(filename) == 0) {
+        printf("Ошибка: пустое имя файла.\n");
+        return;
+    }
+    
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Ошибка: не удалось создать файл '%s'.\n", filename);
+        return;
+    }
+    
+    fprintf(file, "=== Отсортированный массив ===\n");
+    fprintf(file, "Размер: %d элементов\n", currentSize);
+    fprintf(file, "Элементы:\n");
+    
+    for (int i = 0; i < currentSize; i++) {
+        fprintf(file, "%d", currentArray[i]);
+        if ((i + 1) % 10 == 0) {
+            fprintf(file, "\n");
+        } else if (i < currentSize - 1) {
+            fprintf(file, " ");
+        }
+    }
+    fprintf(file, "\n");
+    fprintf(file, "=== Конец файла ===\n");
+    
+    fclose(file);
+    printf("Массив сохранён в файл '%s' (%d элементов).\n", filename, currentSize);
+}
+
+void loadArrayFromFileWithPath() {
+    char filename[100];
+    
+    printf("Введите путь к файлу (например, input.txt или C:/data/input.txt): ");
+    fgets(filename, sizeof(filename), stdin);
+    filename[strcspn(filename, "\n")] = '\0';
+    
+    if (strlen(filename) == 0) {
+        printf("Ошибка: пустое имя файла.\n");
+        return;
+    }
+    
+    if (!validateFileExists(filename)) {
+        return;
+    }
+    
+    if (!validateFileContent(filename)) {
+        return;
+    }
+    
+    clearArray();
+    
+    FILE* file = fopen(filename, "r");
+    if (file == NULL) {
+        printf("Ошибка: не удалось открыть файл '%s'.\n", filename);
+        return;
+    }
+    
+    int size = 0;
+    while (size < MAX_SIZE && fscanf(file, "%d", &currentArray[size]) == 1) {
+        size++;
+    }
+    fclose(file);
+    
+    currentSize = size;
+    arrayLoaded = true;
+    printf("Загружено %d элементов из файла '%s'.\n", size, filename);
+}
+
+// ===== ФУНКЦИИ ИНТЕРФЕЙСА =====
+
 void showMenu() {
     printf("\n========================================\n");
     printf("     MERGESORT - КОНСОЛЬНЫЙ ИНТЕРФЕЙС\n");
@@ -186,9 +274,13 @@ void showMenu() {
     printf("  0. Выйти\n");
     printf("========================================\n");
     printf("Текущий массив: ");
-    if (arrayLoaded && currentSize > 0) printf("%d элементов", currentSize);
-    else printf("(пусто)");
-    printf("\nВыберите действие: ");
+    if (arrayLoaded && currentSize > 0) {
+        printf("%d элементов", currentSize);
+    } else {
+        printf("(пусто)");
+    }
+    printf("\n");
+    printf("Выберите действие: ");
 }
 
 void clearArray() {
